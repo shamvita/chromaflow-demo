@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Info, Search } from 'lucide-react';
 import type { ProductItem } from './types';
+import { CATEGORY_LABELS } from './constants';
 
 interface ProductGridProps {
   products: ProductItem[];
@@ -36,7 +36,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={`Buscar en ${activeCategory}...`}
+            placeholder={`Buscar en ${CATEGORY_LABELS[activeCategory as keyof typeof CATEGORY_LABELS] || activeCategory}...`}
             className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 w-full max-w-md focus:border-emerald-500/50 focus:ring-0 outline-none text-white placeholder-zinc-500 transition-all font-medium"
             autoFocus
           />
@@ -90,9 +90,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 </div>
 
                 <div className="mt-4 w-full flex items-center justify-between border-t border-white/5 pt-3 text-left">
-                    {product.formula ? (
+                    {(product.formula || product.category === 'personalizados') ? (
                          <div className="text-xs font-bold text-violet-400 truncate max-w-[60%]">
-                            {product.formula.containerName?.replace(/Envase\s?/i, '') || 'Fórmula'}
+                            {product.formula?.containerName?.replace(/Envase\s?/i, '') || 'Fórmula'}
                          </div>
                     ) : (
                          <div className="text-xs font-medium text-zinc-500">

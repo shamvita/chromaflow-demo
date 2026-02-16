@@ -173,7 +173,7 @@ const StepBaseSelection: React.FC<StepBaseSelectionProps> = ({
                             <div className="flex items-center justify-between mt-6">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-zinc-500 font-medium">Stock:</span>
-                                <span className={`text-xs font-bold ${base.stock < 10 ? 'text-red-400' : 'text-zinc-300'}`}>{base.stock}u</span>
+                                <span className={`text-xs font-bold ${base.stock < 10 ? 'text-red-400' : 'text-zinc-300'}`}>{base.stock} {base.unit || 'u'}</span>
                             </div>
                             <span className="text-lg font-mono font-bold text-zinc-200">${base.price.toFixed(2)}</span>
                             </div>
@@ -196,7 +196,7 @@ const StepBaseSelection: React.FC<StepBaseSelectionProps> = ({
                         <div key={item.product.id} className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 flex items-center justify-between group">
                             <div>
                                 <div className="text-sm font-bold text-white mb-1">{item.product.name}</div>
-                                <div className="text-xs text-emerald-400 font-mono">{item.qty} Unid/L</div>
+                                <div className="text-xs text-emerald-400 font-mono">{item.qty} {item.product.unit || 'L'}</div>
                             </div>
                             <button 
                                 onClick={() => removeFromCocktail(item.product.id)}

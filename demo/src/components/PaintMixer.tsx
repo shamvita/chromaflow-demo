@@ -13,7 +13,10 @@ import {
   ProductGrid,
   MixSummary,
   FormulaPreview,
+  ColorPicker
 } from './paint-mixer';
+import { useTutorial } from '../hooks/useTutorial';
+import { mixColors, getMeldingWeight } from '../utils/color';
 
 // --- MAIN APP ---
 export default function PaintMixer() {
@@ -27,12 +30,24 @@ export default function PaintMixer() {
   });
   
   // UI States
-  const [activeTab, setActiveTab] = useState<keyof Inventory>('preparacion');
+  const [activeTab, setActiveTab] = useState<keyof Inventory | 'color_picker'>('personalizados');
   
   const [numpadOpen, setNumpadOpen] = useState(false);
   const [showInventoryManager, setShowInventoryManager] = useState(false);
   const [viewingFormula, setViewingFormula] = useState<ProductItem | null>(null);
   const [showFinalReview, setShowFinalReview] = useState(false);
+  const { startTutorial } = useTutorial();
+  
+  // Tutorial Check
+  useEffect(() => {
+    const seen = localStorage.getItem('chromaflow_tutorial_seen');
+    if (!seen) {
+      setTimeout(() => {
+        startTutorial();
+        localStorage.setItem('chromaflow_tutorial_seen', 'true');
+      }, 1500); // Small delay for better UX
+    }
+  }, []);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,17 +81,44 @@ export default function PaintMixer() {
                   // Fix negative stock
                   if (newItem.stock < 0) newItem.stock = 0;
 
-                  // Assign default unit if missing
-                  if (!newItem.unit) {
-                      let defaultUnit = 'L';
-                      const sub = newItem.subcategory?.toLowerCase() || '';
+                  // 1. Try to find in INITIAL_INVENTORY for canonical unit
+                  const canonical = INITIAL_INVENTORY[cat as keyof Inventory]?.find((x: ProductItem) => x.id === newItem.id);
+                  
+                  // Determine Target Unit
+                  let targetUnit: string | undefined = newItem.unit;
+                  
+                  if (canonical) {
+                      targetUnit = canonical.unit;
+                  } else {
+                      // Defaults for custom items
+                      if (cat === 'bases_auto') targetUnit = 'kg';
+                      else if (cat === 'tintes') targetUnit = 'gr';
+                      else if (cat === 'bases_arq' || cat === 'solventes') targetUnit = targetUnit || 'gal';
+                      else if (cat === 'barnices_acabados') targetUnit = targetUnit || 'u';
                       
-                      if (cat === 'envases') defaultUnit = 'u';
-                      else if (sub.includes('masilla') || sub.includes('tinte') || sub.includes('polvo') || sub.includes('perla')) defaultUnit = 'gr';
-                      else if (cat === 'personalizados') defaultUnit = 'u';
-                      
-                      newItem.unit = defaultUnit;
+                      // Fallback for others
+                      if (!targetUnit) {
+                          if (cat === 'envases') targetUnit = 'u';
+                          else if (cat === 'personalizados') targetUnit = 'u';
+                          else targetUnit = 'L';
+                      }
                   }
+
+                  // Perform Stock Conversion if detected mismatch
+                  // 1. L/u -> gr (Tints)
+                  if ((!newItem.unit || newItem.unit === 'L') && targetUnit === 'gr') {
+                      if (newItem.stock < 1000) newItem.stock *= 1000; 
+                  }
+                  // 2. gr -> kg (Auto Bases)
+                  else if (newItem.unit === 'gr' && targetUnit === 'kg') {
+                      if (newItem.stock > 50) newItem.stock /= 1000;
+                  }
+                  // 3. gr -> L (Varnish fix for bad migration)
+                  else if (newItem.unit === 'gr' && targetUnit === 'L') {
+                      if (newItem.stock > 500) newItem.stock /= 1000;
+                  }
+                  
+                  newItem.unit = targetUnit || 'u';
                   
                   return newItem;
               });
@@ -109,7 +151,7 @@ export default function PaintMixer() {
           name: `${f.customerName} - ${f.colorName || 'Sin Nombre'}`,
           price: f.total, // Store raw cost or price? Assuming price.
           stock: 999, // Virtual stock
-          color: '#808080', // TODO: Calculate avg color or store visual color in formula
+          color: f.color || '#808080', 
           formula: f, // Attach full formula for reference
           unit: f.containerName?.replace(/Envase\s?/i, '') || 'u'
       }));
@@ -144,7 +186,7 @@ export default function PaintMixer() {
         name: `${newFormula.customerName} - ${newFormula.colorName || 'Sin Nombre'}`,
         price: newFormula.total,
         stock: 999,
-        color: '#808080',
+        color: newFormula.color || '#808080',
         formula: newFormula,
         unit: newFormula.containerName?.replace(/Envase\s?/i, '') || 'u'
     };
@@ -235,7 +277,10 @@ export default function PaintMixer() {
           ...prev,
           bases: [...prev.bases, ...addedBases],
           tints: [...prev.tints, ...f.tints],
-          container: newContainer
+          container: newContainer,
+          referenceImage: f.referenceImage,
+          customerName: f.customerName, // Optionally restore customer name? Or keep default? Let's restore as base for restart.
+          colorName: f.colorName 
       }));
       
       setViewingFormula(null);
@@ -283,17 +328,15 @@ export default function PaintMixer() {
       }
 
       // Logic to decide if it's a Base or Tint
-      // Rule 1: 'Preparacion' tab -> Base
-      // Rule 2: 'Envases' -> Container (Handled above, but double check)
-      // Rule 3: 'Personalizados' -> Base? Or allow user choice? Let's default to Base for now as per requirement "Use as ingredient".
-      // Rule 4: Everything else -> Tint/Additive
+      // Rule 1: 'Personalizados' -> Base? Or allow user choice? Let's default to Base for now as per requirement "Use as ingredient".
+      // Rule 2: 'Envases' -> Container
+      // Rule 3: Everything else -> Tint/Additive
       
       // We can also allow 'isBaseRole' property to override.
       
-      let isBase = activeTab === 'preparacion' || activeTab === 'personalizados' || activeProductToAdd.isBaseRole;
+      let isBase = activeTab === 'personalizados' || activeProductToAdd.isBaseRole;
       
-      // Override: If we are in 'Tintes y Acabados' (color_brillo), and it IS a base role, treat as base.
-      // If it is a Tinte (isBaseRole false), treat as Tinte.
+      // If it has isBaseRole, treat as base. Otherwise treat as tint/additive.
       
       // Simplified:
       if (activeTab === 'envases') { // Should be caught by click handler, but safety
@@ -320,7 +363,7 @@ export default function PaintMixer() {
                    newTints[existingIdx] = { ...newTints[existingIdx], qty: newTints[existingIdx].qty + qty };
                } else {
                    // We need to store category for lookup later
-                   const catKey = (Object.keys(inventory) as Array<keyof Inventory>).find(k => k === activeTab) || 'color_brillo';
+                   const catKey = (Object.keys(inventory) as Array<keyof Inventory>).find(k => k === activeTab) || 'tintes';
                    newTints.push({ id: activeProductToAdd.id, qty, category: catKey });
                }
                return { ...prev, tints: newTints };
@@ -344,7 +387,7 @@ export default function PaintMixer() {
   };
 
 
-  const handleFinalize = () => {
+  const handleFinalize = (skipReset = false) => {
     if (currentMix.bases.length === 0 && currentMix.tints.length === 0) return;
     const newInventory = JSON.parse(JSON.stringify(inventory)) as Inventory;
 
@@ -375,9 +418,19 @@ export default function PaintMixer() {
         }
 
         if(baseCat && baseCat !== 'personalizados') {
-            newInventory[baseCat] = newInventory[baseCat].map((p: ProductItem) => 
-                p.id === mixBase.product.id ? { ...p, stock: Math.max(0, p.stock - mixBase.qty) } : p
-            );
+            newInventory[baseCat] = newInventory[baseCat].map((p: ProductItem) => {
+                if (p.id !== mixBase.product.id) return p;
+
+                // DEDUCCIÓN DE STOCK:
+                // Si el producto está en 'kg' (Automotriz) y usamos 'gr' (Mezcla),
+                // convertimos consumo a kg antes de restar.
+                let deduction = mixBase.qty;
+                if (p.unit === 'kg') {
+                    deduction = mixBase.qty / 1000;
+                }
+                
+                return { ...p, stock: Math.max(0, p.stock - deduction) };
+            });
         }
     });
 
@@ -408,16 +461,18 @@ export default function PaintMixer() {
       colorName: currentMix.colorName,
       code,
       date: new Date().toISOString(),
-      bases: currentMix.bases.map(b => ({ id: b.product.id, name: b.product.name, qty: b.qty })),
+      bases: currentMix.bases.map(b => ({ id: b.product.id, name: b.product.name, qty: b.qty, unit: b.product.unit })),
       containerId: currentMix.container?.id,
       containerName: currentMix.container?.name,
       tints: currentMix.tints,
-      total: calculations.total
+      total: calculations.total,
+      color: visualColor,
+      referenceImage: currentMix.referenceImage
     };
     saveFormula(newFormula);
 
     showNotification(`Fórmula guardada: ${code}`);
-    handleReset();
+    if (!skipReset) handleReset();
   };
 
   // --- Derived State ---
@@ -426,7 +481,13 @@ export default function PaintMixer() {
     let cost = 0;
     // Sum bases cost
     currentMix.bases.forEach(b => {
-        cost += b.product.price * b.qty; 
+        // PRECIO SINCERADO: Si la base es Automotriz (kg), el precio está en $/kg pero la mezcla es en gr.
+        // Convertimos la cantidad de gramos a kilos para calcular el costo.
+        if (b.product.unit === 'kg') {
+            cost += (b.qty / 1000) * b.product.price;
+        } else {
+            cost += b.product.price * b.qty; 
+        }
     });
     if (currentMix.container) cost += currentMix.container.price;
     currentMix.tints.forEach((item: MixTint) => {
@@ -439,18 +500,40 @@ export default function PaintMixer() {
   }, [currentMix, inventory]);
 
   const visualColor = useMemo(() => {
-    if (currentMix.tints.length === 0) {
-        return currentMix.bases.length > 0 ? currentMix.bases[0].product.color : '#18181b';
+    // If no bases and no tints -> Default or black
+    if (currentMix.bases.length === 0 && currentMix.tints.length === 0) {
+        return '#18181b'; // Default dark
     }
-    const dominantTint = currentMix.tints.reduce((prev: MixTint, current: MixTint) => (prev.qty > current.qty) ? prev : current);
-    
-    // Robust lookup
-    let tintObj: ProductItem | undefined;
-    if (dominantTint.category && inventory[dominantTint.category]) {
-       tintObj = inventory[dominantTint.category].find((t: ProductItem) => t.id === dominantTint.id);
-    }
-    
-    return tintObj ? tintObj.color : '#fff';
+
+    const colors: { color: string; weight: number }[] = [];
+
+    // Bases
+    currentMix.bases.forEach((base) => {
+      if (base.product.color) {
+        // Fix: If unit is 'kg', the quantity is stored in grams (e.g. 1000 for 1kg).
+        // So we should pass 'gr' as unit to getMeldingWeight to avoid multiplying by 1000 again.
+        const effectiveUnit = base.product.unit === 'kg' ? 'gr' : (base.product.unit || 'u');
+        colors.push({
+          color: base.product.color,
+          weight: getMeldingWeight(base.qty, effectiveUnit),
+        });
+      }
+    });
+
+    // Tints
+    currentMix.tints.forEach((item) => {
+      const tint = inventory[item.category]?.find((t: ProductItem) => t.id === item.id) || 
+                   inventory['personalizados']?.find((t: ProductItem) => t.id === item.id);
+      
+      if (tint && tint.color) {
+        colors.push({
+          color: tint.color,
+          weight: getMeldingWeight(item.qty, tint.unit || 'gr'),
+        });
+      }
+    });
+
+    return mixColors(colors);
   }, [currentMix, inventory]);
 
   const handleCustomerNameChange = (name: string) => {
@@ -463,7 +546,6 @@ export default function PaintMixer() {
 
   // --- RENDER ---
 
-  const currentCategoryProducts = inventory[activeTab] || [];
 
   return (
     <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-500 overflow-hidden">
@@ -473,6 +555,7 @@ export default function PaintMixer() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenInventory={() => setShowInventoryManager(true)}
+        onStartTutorial={startTutorial}
       />
 
       {/* 2. MAIN CONTENT AREA (Grid) */}
@@ -487,14 +570,26 @@ export default function PaintMixer() {
           onReset={handleReset}
         />
 
-        <div className="flex-1 overflow-hidden">
-            <ProductGrid 
-                products={currentCategoryProducts}
-                onProductClick={handleProductClick}
-                activeCategory={activeTab}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-            />
+        <div id="product-grid-area" className="flex-1 overflow-hidden">
+            {activeTab === 'color_picker' ? (
+                <ColorPicker 
+                    inventory={inventory}
+                    onProductSelect={(product) => {
+                        // Switch to the product's category to show context? 
+                        // Or just open the action directly. 
+                        // Let's just open the action.
+                        handleProductClick(product);
+                    }}
+                />
+            ) : (
+                <ProductGrid 
+                    products={inventory[activeTab as keyof Inventory] || []}
+                    onProductClick={handleProductClick}
+                    activeCategory={activeTab as keyof Inventory}
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                />
+            )}
         </div>
       </main>
 
@@ -545,11 +640,14 @@ export default function PaintMixer() {
                             onFinalize={handleFinalize}
                             onUpdateCustomerName={handleCustomerNameChange}
                             onUpdateColorName={handleColorNameChange}
+                            onUpdateReferenceImage={(img) => setCurrentMix(prev => ({ ...prev, referenceImage: img }))}
                          />
                     </div>
                </div>
           </div>
       )}
+
+
 
       <InventoryManager 
         isOpen={showInventoryManager}
@@ -566,13 +664,14 @@ export default function PaintMixer() {
           onInput={handleNumpadInput}
           onClose={() => setNumpadOpen(false)}
           onConfirm={confirmAddToMix}
-          label={`Cantidad (${activeProductToAdd.unit || 'u'})`}
-          unit={activeProductToAdd.unit}
+          // UX: Si es Automotriz (kg), pedimos gramos en el Numpad
+          label={`Cantidad (${activeProductToAdd.unit === 'kg' ? 'gr' : (activeProductToAdd.unit || 'u')})`}
+          unit={activeProductToAdd.unit === 'kg' ? 'gr' : activeProductToAdd.unit}
         />
       )}
 
       {notification && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-3xl shadow-2xl z-[100] animate-in fade-in slide-in-from-bottom-10 flex items-center gap-3 ${
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-3xl shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-10 flex items-center gap-3 ${
             notification.type === 'success' ? 'bg-emerald-600' : 'bg-zinc-800'
         }`}>
             {notification.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-200" /> : <Printer size={20} className="text-zinc-400" />}

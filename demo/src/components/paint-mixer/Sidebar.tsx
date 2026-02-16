@@ -1,27 +1,25 @@
 
 import React from 'react';
-import { Layers, Droplet, Star, ShoppingBag, Box, Settings } from 'lucide-react';
+import { Droplet, Star, ShoppingBag, Box, Settings, Pipette, BookOpen } from 'lucide-react';
 import type { Inventory } from './types';
 
 interface SidebarProps {
-  activeTab: keyof Inventory;
-  onTabChange: (tab: keyof Inventory) => void;
+  activeTab: keyof Inventory | 'color_picker';
+  onTabChange: (tab: keyof Inventory | 'color_picker') => void;
   onOpenInventory: () => void;
+  onStartTutorial: () => void;
 }
 
 const NAV_ITEMS = [
-  { key: 'preparacion', label: 'Preparación', icon: Layers },
-  { key: 'color_brillo', label: 'Tintes y Acabados', icon: Droplet },
-  { key: 'solventes', label: 'Solventes', icon: Droplet }, // Consider a different icon
   { key: 'personalizados', label: 'Fórmulas', icon: Star },
+  { key: 'color_picker', label: 'Igualación', icon: Pipette },
+  { key: 'bases_auto', label: 'Automotriz', icon: Droplet },
+  { key: 'bases_arq', label: 'Arquitectónica', icon: Droplet },
+  { key: 'tintes', label: 'Tintes', icon: Droplet },
+  { key: 'barnices_acabados', label: 'Barnices', icon: Droplet },
+  { key: 'solventes', label: 'Solventes', icon: Droplet }, 
   { key: 'envases', label: 'Envases', icon: Box },
   { key: 'complementos', label: 'Extras', icon: ShoppingBag },
-  // Impermeabilizacion handled in extras or separate? User asked for 5 main cats, but code has 6.
-  // Grouping suggestion:
-  // Bases -> Preparacion + Color Brillo Bases?
-  // Tintas -> Color Brillo Tintes
-  // But for now let's stick to inventory keys to be safe, or map loosely.
-  // User asked for: Bases, Tintas, Personalizados, Envases, Extras.
 ] as const;
 
 // Mapping user requested categories to inventory keys for the sidebar
@@ -29,7 +27,7 @@ const NAV_ITEMS = [
 // Let's rely on the inventory keys from `types.ts` for now to avoid breaking data flow,
 // but label them as user requested where possible.
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInventory }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInventory, onStartTutorial }) => {
   return (
     <aside className="w-20 md:w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col pt-6 pb-6 transition-all z-20">
       <div className="px-6 mb-8 flex items-center gap-3">
@@ -42,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInvento
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-2 overflow-y-auto no-scrollbar">
+      <nav id="sidebar-nav" className="flex-1 px-3 space-y-2 overflow-y-auto no-scrollbar">
           <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-600 hidden md:block">
               Categorías
           </div>
@@ -50,8 +48,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInvento
             const isActive = activeTab === item.key;
             return (
           <button 
+            id={`sidebar-item-${item.key}`}
             key={item.key}
-            onClick={() => onTabChange(item.key as keyof Inventory)}
+            onClick={() => onTabChange(item.key as any)}
             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group relative overflow-hidden ${
               isActive
               ? 'bg-emerald-500/10 text-emerald-400 font-bold' 
@@ -71,14 +70,38 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInvento
         )})}
       </nav>
 
-      <div className="px-4 mt-4 pt-4 border-t border-zinc-900">
-        <button 
-          onClick={onOpenInventory}
-          className="w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-all flex items-center justify-center gap-2 text-zinc-500 hover:text-white group"
-        >
-          <Settings size={18} className="group-hover:rotate-90 transition-transform" />
-          <span className="hidden md:block font-bold text-xs uppercase tracking-wider">Gestión</span>
-        </button>
+      <div className="px-4 mt-auto pt-6 border-t border-zinc-900 space-y-4">
+        {/* User Profile */}
+        <div className="flex items-center gap-3 px-2">
+            <img 
+               src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" 
+               alt="Usuario" 
+               className="w-10 h-10 rounded-full border-2 border-emerald-500/20 object-cover"
+            />
+            <div className="hidden md:block overflow-hidden">
+                <div className="text-sm font-bold text-white truncate">José M.</div>
+                <div className="text-[10px] text-zinc-500 truncate">Admin</div>
+            </div>
+        </div>
+
+        <div className="space-y-2">
+            <button 
+            onClick={onStartTutorial}
+            className="w-full h-10 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 transition-all flex items-center justify-center gap-2 text-zinc-500 hover:text-white group"
+            >
+            <BookOpen size={16} className="group-hover:scale-110 transition-transform" />
+            <span className="hidden md:block font-bold text-[10px] uppercase tracking-wider">Tutorial</span>
+            </button>
+
+            <button 
+            id="sidebar-management"
+            onClick={onOpenInventory}
+            className="w-full h-10 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 transition-all flex items-center justify-center gap-2 text-zinc-500 hover:text-white group"
+            >
+            <Settings size={16} className="group-hover:rotate-90 transition-transform" />
+            <span className="hidden md:block font-bold text-[10px] uppercase tracking-wider">Gestión</span>
+            </button>
+        </div>
       </div>
     </aside>
   );

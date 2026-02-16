@@ -62,7 +62,12 @@ const FormulaPreview: React.FC<FormulaPreviewProps> = ({ product, inventory, onC
                     {formula.bases.map((base, idx) => (
                         <div key={`base-${idx}`} className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
                             <span className="text-zinc-200 font-medium">{base.name}</span>
-                            <span className="font-mono text-emerald-400 font-bold">{base.qty} L</span> 
+                            <span className="font-mono text-emerald-400 font-bold">
+                                {base.qty} {(() => { 
+                                    const u = base.unit || (inventory['bases_auto'].find(p => p.id === base.id)?.unit) || 'L';
+                                    return u === 'kg' ? 'gr' : u;
+                                })()}
+                            </span> 
                             {/* Assuming L for legacy reasons or we parse it? SavedFormula bases structure only has id, name, qty. No unit. 
                                 In POS refactor, currentMix saves bases with qty.
                                 Ideally we should have saved unit too. For now assume L or just show qty */}

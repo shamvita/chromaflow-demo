@@ -13,12 +13,14 @@ export interface ProductItem {
 }
 
 export interface Inventory {
-  preparacion: ProductItem[];
-  color_brillo: ProductItem[];
+  bases_auto: ProductItem[];        // Bases Automotrices (Poliéster Bicapa, Esmalte Brillo Directo)
+  bases_arq: ProductItem[];         // Bases Arquitectónicas (Caucho: P, T, X, R, Y)
+  tintes: ProductItem[];            // Tintes/Pigmentos universales
+  barnices_acabados: ProductItem[]; // Barnices (Skylack) y acabados
   solventes: ProductItem[];
   complementos: ProductItem[];
   impermeabilizacion: ProductItem[];
-  personalizados: ProductItem[]; // New category for saved formulas
+  personalizados: ProductItem[];    // Fórmulas guardadas
   envases: ProductItem[];
 }
 
@@ -40,6 +42,7 @@ export interface MixState {
   colorName?: string;
   date: string;
   container?: ProductItem; // Still kept for single base flow or as a general container
+  referenceImage?: string; // Optional URL or base64 of sample image
 }
 
 export interface SavedFormula {
@@ -47,12 +50,14 @@ export interface SavedFormula {
   customerName: string;
   code: string;
   date: string;
-  bases: { id: string; name: string; qty: number }[];
+  color?: string; // Visual hex color
+  bases: { id: string; name: string; qty: number; unit?: string }[];
   containerId?: string;
   containerName?: string;
   colorName?: string;
   tints: MixTint[];
   total: number;
+  referenceImage?: string;
 }
 
 export interface SavedCustomer {

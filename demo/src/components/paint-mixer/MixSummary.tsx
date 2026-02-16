@@ -1,7 +1,8 @@
 
-import React from 'react';
-import { Hash, X, ArrowRight } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Hash, X, ArrowRight, Droplets } from 'lucide-react';
 import type { Inventory, MixState } from './types';
+import { mixColors, getMeldingWeight } from '../../utils/color';
 
 interface MixSummaryProps {
   currentMix: MixState;
@@ -24,23 +25,67 @@ const MixSummary: React.FC<MixSummaryProps> = ({
 }) => {
   const hasItems = currentMix.bases.length > 0 || currentMix.tints.length > 0 || currentMix.container;
 
+  const mixedColor = useMemo(() => {
+    const colors: { color: string; weight: number }[] = [];
+
+    // Bases
+    currentMix.bases.forEach((base) => {
+      if (base.product.color) {
+        // Fix: Treat 'kg' unit as 'gr' because quantities are stored in grams
+        const effectiveUnit = base.product.unit === 'kg' ? 'gr' : (base.product.unit || 'u');
+        colors.push({
+          color: base.product.color,
+          weight: getMeldingWeight(base.qty, effectiveUnit),
+        });
+      }
+    });
+
+    // Tints
+    currentMix.tints.forEach((tint) => {
+      const product = inventory[tint.category]?.find((p) => p.id === tint.id) || 
+                      inventory['personalizados']?.find((p) => p.id === tint.id);
+
+      if (product && product.color) {
+        const effectiveUnit = product.unit === 'kg' ? 'gr' : (product.unit || 'gr');
+        colors.push({
+          color: product.color,
+          weight: getMeldingWeight(tint.qty, effectiveUnit),
+        });
+      }
+    });
+
+    return mixColors(colors);
+  }, [currentMix, inventory]);
+
   return (
-    <div className="w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col h-full shadow-2xl z-30">
+    <div id="mix-summary" className="w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col h-full shadow-2xl z-30">
         {/* Header */}
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/50">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                    <Hash size={18} />
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/10 shadow-inner transition-colors duration-500"
+                  style={{ backgroundColor: hasItems ? mixedColor : 'rgba(16, 185, 129, 0.1)' }}
+                >
+                    {!hasItems ? <Hash size={18} className="text-emerald-500" /> : <Droplets size={18} className="text-white drop-shadow-md mix-blend-difference" />}
                 </div>
                 <div>
                     <h3 className="font-black text-white text-sm uppercase tracking-wider">Mezcla Actual</h3>
                     <div className="text-[10px] text-zinc-500 font-bold">{currentMix.customerName}</div>
                 </div>
             </div>
-            <div className="text-right">
-                 <div className="text-lg font-mono font-bold text-white">${calculations.total.toFixed(2)}</div>
-            </div>
+
         </div>
+
+        {/* Color Preview Bar */}
+        {hasItems && (
+          <div className="relative h-2 w-full bg-zinc-800 overflow-hidden">
+             <div 
+               className="absolute inset-0 transition-colors duration-500"
+               style={{ backgroundColor: mixedColor }}
+             />
+             <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent opacity-50" />
+          </div>
+        )}
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
@@ -60,7 +105,7 @@ const MixSummary: React.FC<MixSummaryProps> = ({
                     <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline mb-1">
                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">BASE</span>
-                            <span className="text-[10px] font-mono text-zinc-400">{base.qty} {base.product.unit || 'u'}</span>
+                            <span className="text-[10px] font-mono text-zinc-400">{base.qty} {base.product.unit === 'kg' ? 'gr' : (base.product.unit || 'u')}</span>
                         </div>
                         <div className="text-xs font-bold text-zinc-200 truncate">{base.product.name}</div>
                     </div>
@@ -77,7 +122,6 @@ const MixSummary: React.FC<MixSummaryProps> = ({
             {currentMix.tints.map((item) => {
                 const t = inventory[item.category]?.find((x) => x.id === item.id) || 
                           inventory['personalizados']?.find((x) => x.id === item.id);
-                          // Fallback search?
                 
                 if (!t) return null;
 
@@ -92,7 +136,6 @@ const MixSummary: React.FC<MixSummaryProps> = ({
                                 <span className="text-[10px] font-mono text-zinc-400">{item.qty} {t.unit || 'gr'}</span>
                             </div>
                             <div className="text-xs font-bold text-zinc-200 truncate">{t.name}</div>
-                             {/* If personalized, maybe show ingredients icon? */}
                         </div>
                         <button 
                             onClick={() => onRemoveTint(item.id)}
@@ -127,7 +170,11 @@ const MixSummary: React.FC<MixSummaryProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-zinc-800 bg-zinc-950/50">
+        <div id="mix-summary-total" className="p-6 border-t border-zinc-800 bg-zinc-950/50">
+             <div className="flex justify-between items-center mb-4">
+                <span className="text-zinc-500 font-medium text-xs uppercase tracking-wider">Total Estimado</span>
+                <div className="text-2xl font-mono font-bold text-white">${calculations.total.toFixed(2)}</div>
+             </div>
              <button 
                 onClick={onProceed}
                 disabled={!hasItems}

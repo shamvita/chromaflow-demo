@@ -28,15 +28,23 @@ const MixerHeader: React.FC<MixerHeaderProps> = ({
             <Zap size={10} className="text-emerald-500" />
           </div>
         </div>
-        <div>
-          <input 
-            type="text" 
-            value={customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
-            className="bg-transparent border-none focus:ring-0 text-xl font-bold p-0 placeholder-zinc-700 outline-none w-64"
-            placeholder="Nombre del Cliente..."
+        <div className="flex items-center gap-4">
+          <img 
+            src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop" 
+            alt="Cliente" 
+            className="w-12 h-12 rounded-full border-2 border-zinc-800 object-cover"
           />
-          <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Mezcla Actual • {new Date().toLocaleDateString()}</div>
+          <div>
+            <input 
+              id="mixer-search"
+              type="text" 
+              value={customerName}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-xl font-bold p-0 placeholder-zinc-700 outline-none w-64 text-white"
+              placeholder="Nombre del Cliente..."
+            />
+            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Mezcla Actual • {new Date().toLocaleDateString()}</div>
+          </div>
         </div>
       </div>
 
