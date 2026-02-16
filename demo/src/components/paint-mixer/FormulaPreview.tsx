@@ -95,7 +95,7 @@ const FormulaPreview: React.FC<FormulaPreviewProps> = ({ product, inventory, onC
                                 <span className="text-zinc-200 font-medium block">{getTintName(tint)}</span>
                                 <span className="text-[10px] text-zinc-500 uppercase">{tint.category}</span>
                             </div>
-                            <span className="font-mono text-blue-400 font-bold">{tint.qty} gr</span>
+                            <span className="font-mono text-emerald-400 font-bold">{tint.qty} gr</span>
                         </div>
                     ))}
                      {formula.tints.length === 0 && (

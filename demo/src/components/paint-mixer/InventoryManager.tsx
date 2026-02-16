@@ -13,7 +13,7 @@ interface InventoryManagerProps {
 }
 
 const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, inventory, onAdd, onUpdate, onDelete }) => {
-  const [activeTab, setActiveTab] = useState<keyof Inventory>('preparacion');
+  const [activeTab, setActiveTab] = useState<keyof Inventory>('bases_auto');
   const [editingItem, setEditingItem] = useState<Partial<ProductItem> | null>(null);
 
   if (!isOpen) return null;
@@ -47,7 +47,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-zinc-900 w-full max-w-5xl h-[85vh] rounded-2xl border border-zinc-800 flex flex-col shadow-2xl overflow-hidden">
-        
+
         {/* Header */}
         <div className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-900">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -61,11 +61,11 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
 
         {/* Content */}
         <div className="flex-1 flex overflow-hidden">
-          
+
           {/* Sidebar / Tabs */}
           <div className="w-56 bg-zinc-950 border-r border-zinc-800 p-4 space-y-2 overflow-y-auto">
             {(Object.keys(CATEGORY_LABELS) as Array<keyof Inventory>).map((key) => (
-              <button 
+              <button
                 key={key}
                 onClick={() => { setActiveTab(key); setEditingItem(null); }}
                 className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all text-sm ${activeTab === key ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:bg-zinc-900'}`}
@@ -77,7 +77,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
 
           {/* Main Area */}
           <div className="flex-1 bg-zinc-900 p-6 overflow-y-auto">
-            
+
             {editingItem ? (
               // FORM VIEW
               <div className="max-w-xl mx-auto">
@@ -98,17 +98,17 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Nombre del Producto</label>
                       <input name="name" defaultValue={editingItem.name} required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none" />
                     </div>
-                    
+
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Código (opcional)</label>
                       <input name="code" defaultValue={editingItem.code} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none" />
                     </div>
-                    
+
                     <div>
                       <label className="block text-xs font-medium text-zinc-500 mb-1">Color (Hex)</label>
                       <div className="flex gap-2">
-                         <input type="color" name="color" defaultValue={editingItem.color || '#ffffff'} className="h-12 w-12 bg-transparent cursor-pointer rounded overflow-hidden" />
-                         <input type="text" name="color_text" value={editingItem.color || '#ffffff'} className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-sm font-mono" readOnly />
+                        <input type="color" name="color" defaultValue={editingItem.color || '#ffffff'} className="h-12 w-12 bg-transparent cursor-pointer rounded overflow-hidden" />
+                        <input type="text" name="color_text" value={editingItem.color || '#ffffff'} className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-sm font-mono" readOnly />
                       </div>
                     </div>
 
@@ -136,8 +136,8 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                   </div>
 
                   <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-800">
-                    <button type="button" onClick={() => setEditingItem(null)} className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg font-medium transition-colors">Cancelar</button>
-                    <button type="submit" className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-white transition-colors">Guardar Cambios</button>
+                    <button type="button" onClick={() => setEditingItem(null)} className="flex-1 h-[36px] bg-zinc-800 hover:bg-zinc-700 rounded-lg font-medium transition-colors">Cancelar</button>
+                    <button type="submit" className="flex-1 h-[36px] bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-white transition-colors">Guardar Cambios</button>
                   </div>
                 </form>
               </div>
@@ -148,7 +148,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                   <div className="text-sm text-zinc-500">
                     Mostrando {items.length} productos en {CATEGORY_LABELS[activeTab]}
                   </div>
-                  <button 
+                  <button
                     onClick={() => setEditingItem({ category: CATEGORY_LABELS[activeTab] })}
                     className="flex items-center gap-2 bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-bold text-sm hover:bg-white transition-colors"
                   >
@@ -160,7 +160,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                   {items.map(item => (
                     <div key={item.id} className="bg-zinc-950/50 border border-zinc-800/50 p-4 rounded-xl flex items-center justify-between group hover:border-zinc-700 transition-all">
                       <div className="flex items-center gap-4">
-                        <div 
+                        <div
                           className="w-10 h-10 rounded-full border border-zinc-700 shadow-inner"
                           style={{ backgroundColor: item.color }}
                         />
@@ -176,15 +176,15 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                         </div>
                       </div>
                       <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
+                        <button
                           onClick={() => setEditingItem(item)}
                           className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
                         >
                           <Edit2 size={18} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
-                            if(window.confirm('¿Seguro que deseas eliminar este producto?')) onDelete(activeTab, item.id);
+                            if (window.confirm('¿Seguro que deseas eliminar este producto?')) onDelete(activeTab, item.id);
                           }}
                           className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                         >
@@ -195,7 +195,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({ isOpen, onClose, in
                   ))}
                   {items.length === 0 && (
                     <div className="text-center py-20 text-zinc-600 border-2 border-dashed border-zinc-800 rounded-2xl">
-                       No hay productos en esta categoría
+                      No hay productos en esta categoría
                     </div>
                   )}
                 </div>
