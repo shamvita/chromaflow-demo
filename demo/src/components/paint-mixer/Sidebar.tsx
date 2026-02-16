@@ -1,13 +1,14 @@
 
 import React from 'react';
-import { Droplet, Star, ShoppingBag, Box, Settings, Pipette, BookOpen } from 'lucide-react';
+import { Droplet, Star, ShoppingBag, Box, Settings, Pipette, BookOpen, Users } from 'lucide-react';
 import type { Inventory } from './types';
 
 interface SidebarProps {
-  activeTab: keyof Inventory | 'color_picker';
-  onTabChange: (tab: keyof Inventory | 'color_picker') => void;
+  activeTab: keyof Inventory | 'color_picker' | 'clientes';
+  onTabChange: (tab: keyof Inventory | 'color_picker' | 'clientes') => void;
   onOpenInventory: () => void;
   onStartTutorial: () => void;
+  lowStockTabs: string[];
 }
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { key: 'solventes', label: 'Solventes', icon: Droplet },
   { key: 'envases', label: 'Envases', icon: Box },
   { key: 'complementos', label: 'Extras', icon: ShoppingBag },
+  { key: 'clientes', label: 'Clientes', icon: Users },
 ] as const;
 
 // Mapping user requested categories to inventory keys for the sidebar
@@ -27,7 +29,7 @@ const NAV_ITEMS = [
 // Let's rely on the inventory keys from `types.ts` for now to avoid breaking data flow,
 // but label them as user requested where possible.
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInventory, onStartTutorial }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInventory, onStartTutorial, lowStockTabs }) => {
   return (
     <aside className="w-20 md:w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col pt-6 pb-6 transition-all z-20">
       <div className="px-6 mb-8 flex items-center gap-3">
@@ -58,8 +60,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenInvento
             >
               {isActive && <div className="absolute left-0 top-2 bottom-2 w-1 bg-emerald-500 rounded-r-full" />}
 
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isActive ? 'bg-emerald-500 text-black' : 'bg-zinc-900 group-hover:bg-zinc-800'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors relative ${isActive ? 'bg-emerald-500 text-black' : 'bg-zinc-900 group-hover:bg-zinc-800'}`}>
                 <item.icon size={18} />
+                {lowStockTabs.includes(item.key) && (
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-950 animate-pulse" />
+                )}
               </div>
 
               <div className="hidden md:block text-left truncate">

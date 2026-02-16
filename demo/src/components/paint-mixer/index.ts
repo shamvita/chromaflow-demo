@@ -11,5 +11,6 @@ export { default as FormulaPreview } from './FormulaPreview';
 export { default as StepBaseSelection } from './StepBaseSelection';
 export { default as StepTintSelection } from './StepTintSelection';
 export { default as StepFinalReview } from './StepFinalReview';
+export { default as CustomerManager } from './CustomerManager';
 
 export { default as ColorPicker } from './ColorPicker';

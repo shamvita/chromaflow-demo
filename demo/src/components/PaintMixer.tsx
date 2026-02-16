@@ -13,7 +13,8 @@ import {
   ProductGrid,
   MixSummary,
   FormulaPreview,
-  ColorPicker
+  ColorPicker,
+  CustomerManager
 } from './paint-mixer';
 import { useTutorial } from '../hooks/useTutorial';
 import { mixColors, getMeldingWeight } from '../utils/color';
@@ -30,7 +31,7 @@ export default function PaintMixer() {
   });
 
   // UI States
-  const [activeTab, setActiveTab] = useState<keyof Inventory | 'color_picker'>('personalizados');
+  const [activeTab, setActiveTab] = useState<keyof Inventory | 'color_picker' | 'clientes'>('personalizados');
 
   const [numpadOpen, setNumpadOpen] = useState(false);
   const [showInventoryManager, setShowInventoryManager] = useState(false);
@@ -544,6 +545,19 @@ export default function PaintMixer() {
     setCurrentMix((prev: MixState) => ({ ...prev, colorName: name }));
   };
 
+  const lowStockTabs = useMemo(() => {
+    const tabs: string[] = [];
+    (Object.keys(inventory) as Array<keyof Inventory>).forEach(cat => {
+      // Check if any product in category is low on stock
+      const hasLowStock = inventory[cat].some(p => {
+        if (cat === 'personalizados' || cat === 'envases') return false;
+        return p.stock < (p.unit === 'kg' ? 2 : 5);
+      });
+      if (hasLowStock) tabs.push(cat);
+    });
+    return tabs;
+  }, [inventory]);
+
   // --- RENDER ---
 
 
@@ -556,6 +570,7 @@ export default function PaintMixer() {
         onTabChange={setActiveTab}
         onOpenInventory={() => setShowInventoryManager(true)}
         onStartTutorial={startTutorial}
+        lowStockTabs={lowStockTabs}
       />
 
       {/* 2. MAIN CONTENT AREA (Grid) */}
@@ -575,11 +590,18 @@ export default function PaintMixer() {
             <ColorPicker
               inventory={inventory}
               onProductSelect={(product) => {
-                // Switch to the product's category to show context? 
-                // Or just open the action directly. 
-                // Let's just open the action.
                 handleProductClick(product);
               }}
+            />
+          ) : activeTab === 'clientes' ? (
+            <CustomerManager
+              savedFormulas={savedFormulas}
+              onSelectCustomer={(name) => {
+                handleCustomerNameChange(name);
+                setActiveTab('personalizados');
+                showNotification(`Cliente seleccionado: ${name}`, 'info');
+              }}
+              onExplodeFormula={handleExplodeFormula}
             />
           ) : (
             <ProductGrid
@@ -640,7 +662,7 @@ export default function PaintMixer() {
                 onFinalize={handleFinalize}
                 onUpdateCustomerName={handleCustomerNameChange}
                 onUpdateColorName={handleColorNameChange}
-                onUpdateReferenceImage={(img) => setCurrentMix(prev => ({ ...prev, referenceImage: img }))}
+                onUpdateReferenceImage={(img: string | undefined) => setCurrentMix(prev => ({ ...prev, referenceImage: img }))}
               />
             </div>
           </div>

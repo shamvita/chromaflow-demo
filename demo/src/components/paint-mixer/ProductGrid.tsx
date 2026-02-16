@@ -95,7 +95,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                                             {product.formula?.containerName?.replace(/Envase\s?/i, '') || 'Fórmula'}
                                         </div>
                                     ) : (
-                                        <div className="text-xs font-medium text-zinc-500">
+                                        <div className={`text-xs font-bold transition-colors ${product.stock < (product.unit === 'kg' ? 2 : 5)
+                                                ? 'text-red-500 animate-pulse'
+                                                : product.stock < (product.unit === 'kg' ? 5 : 10)
+                                                    ? 'text-amber-500'
+                                                    : 'text-zinc-500'
+                                            }`}>
                                             {product.stock} <span className="text-[10px]">{product.unit || 'u'}</span>
                                         </div>
                                     )}
